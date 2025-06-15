@@ -52,6 +52,8 @@ export function SimulationChart({ data, title, color }: SimulationChartProps) {
       bins,
       maxFreq,
       average,
+      minTime,
+      maxTime,
       barWidth: (plotWidth / numBins) * 0.8,
       barSpacing: (plotWidth / numBins) * 0.2,
     }
@@ -67,10 +69,10 @@ export function SimulationChart({ data, title, color }: SimulationChartProps) {
     )
   }
 
-  const { width, height, margin, plotWidth, plotHeight, bins, barWidth, barSpacing } = chartData!
+  const { width, height, margin, plotWidth, plotHeight, bins, barWidth, barSpacing, minTime, maxTime } = chartData!
 
-  // Calcular posición Y para la línea de promedio
-  const averageY = margin.top + plotHeight - (average / maxFreq) * plotHeight * 0.8
+  // Calcular posición X para la línea de promedio (basada en el valor del promedio en el rango de tiempo)
+  const averageXPosition = margin.left + ((average - minTime) / (maxTime - minTime)) * plotWidth
 
   return (
     <div className="space-y-4">
@@ -129,28 +131,41 @@ export function SimulationChart({ data, title, color }: SimulationChartProps) {
             )
           })}
 
-          {/* Línea de promedio discontinua */}
+          {/* Línea de promedio vertical discontinua */}
           <line
-            x1={margin.left}
-            y1={averageY}
-            x2={margin.left + plotWidth}
-            y2={averageY}
+            x1={averageXPosition}
+            y1={margin.top}
+            x2={averageXPosition}
+            y2={margin.top + plotHeight}
             stroke="#ef4444"
             strokeWidth="2"
             strokeDasharray="5,5"
           />
 
           {/* Etiqueta del promedio */}
-          <text
-            x={margin.left + plotWidth - 5}
-            y={averageY - 8}
-            textAnchor="end"
-            fontSize="12"
-            fill="#ef4444"
-            fontWeight="600"
-          >
-            Promedio: {average.toFixed(1)} min
-          </text>
+          <g>
+            <rect
+              x={averageXPosition - 35}
+              y={margin.top + 5}
+              width="70"
+              height="20"
+              fill="white"
+              stroke="#ef4444"
+              strokeWidth="1"
+              rx="3"
+              opacity="0.9"
+            />
+            <text
+              x={averageXPosition}
+              y={margin.top + 17}
+              textAnchor="middle"
+              fontSize="11"
+              fill="#ef4444"
+              fontWeight="600"
+            >
+              Promedio: {average.toFixed(1)}
+            </text>
+          </g>
 
           {/* Eje X */}
           <line
