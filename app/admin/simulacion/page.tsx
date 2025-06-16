@@ -1,10 +1,10 @@
 "use client"
 
-import { useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "../../../hooks/useAuth"
-import { SimulationDashboard } from "../../../components/simulation-dashboard"
+import { useEffect } from "react"
+import { AdminSimulationDashboard } from "../../../components/admin-simulation-dashboard"
 import { AppLayout } from "../../../components/app-layout"
+import { useAuth } from "../../../hooks/useAuth"
 
 export default function SimulacionPage() {
   const router = useRouter()
@@ -30,8 +30,8 @@ export default function SimulacionPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Cargando simulador...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando simulador avanzado...</p>
         </div>
       </div>
     )
@@ -43,7 +43,7 @@ export default function SimulacionPage() {
 
   return (
     <AppLayout>
-      <SimulationDashboard />
+      <AdminSimulationDashboard />
     </AppLayout>
   )
 }
