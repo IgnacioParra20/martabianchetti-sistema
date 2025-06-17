@@ -8,17 +8,21 @@ import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import {
-    BarChart3,
-    Calculator,
-    ChevronDown,
-    Clock,
-    Download,
-    FileSpreadsheet,
-    Info,
-    Play,
-    Settings,
-    TrendingUp,
-    Users,
+  AlertTriangle,
+  BarChart3,
+  CheckCircle,
+  ChevronDown,
+  Clock,
+  Coffee,
+  Download,
+  Equal,
+  FileSpreadsheet,
+  Info,
+  Play,
+  Settings,
+  TrendingUp,
+  Users,
+  XCircle,
 } from "lucide-react"
 import { useState } from "react"
 import { useAdvancedSimulation } from "../hooks/useAdvancedSimulation"
@@ -27,15 +31,25 @@ import { CongruentialMethodInfo } from "./congruential-method-info"
 import { DetailedSimulationTable } from "./detailed-simulation-table"
 import { RandomNumbersViewer } from "./random-numbers-viewer"
 import { SimulationChart } from "./simulation-chart"
+import { UnexpectedEventsViewer } from "./unexpected-events-viewer"
 
 export function AdminSimulationDashboard() {
-  const [numClients, setNumClients] = useState(20)
+  const [numClients, setNumClients] = useState(5)
   const [seed, setSeed] = useState(12345)
   const [isStatsOpen, setIsStatsOpen] = useState(false)
   const [isMethodInfoOpen, setIsMethodInfoOpen] = useState(false)
 
-  const { asIsData, toBeData, randomNumbers, chiSquareResult, isRunning, runSimulation, getStatistics, exportData } =
-    useAdvancedSimulation()
+  const {
+    asIsData,
+    toBeData,
+    randomNumbers,
+    unexpectedEvents,
+    chiSquareResult,
+    isRunning,
+    runSimulation,
+    getStatistics,
+    exportData,
+  } = useAdvancedSimulation()
 
   const handleRunSimulation = () => {
     runSimulation(numClients, seed)
@@ -47,6 +61,8 @@ export function AdminSimulationDashboard() {
 
   const asIsStats = asIsData.length > 0 ? getStatistics(asIsData) : null
   const toBeStats = toBeData.length > 0 ? getStatistics(toBeData) : null
+  const hasEvents = unexpectedEvents.length > 0
+  const hasImprovements = asIsStats && toBeStats && Math.abs(asIsStats.averageTotal - toBeStats.averageTotal) > 0.1
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -54,8 +70,8 @@ export function AdminSimulationDashboard() {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Calculator className="w-6 h-6 text-purple-600" />
-            <h1 className="text-2xl font-bold">Simulador Avanzado de Tiempos de Servicio</h1>
+            <Coffee className="w-6 h-6 text-amber-600" />
+            <h1 className="text-2xl font-bold">Simulador Cafetería "Martha de Bianchetti"</h1>
             <Badge className="bg-purple-100 text-purple-700">Administrador Exclusivo</Badge>
           </div>
           <div className="flex gap-2">
@@ -74,7 +90,7 @@ export function AdminSimulationDashboard() {
           </div>
         </div>
         <p className="text-gray-600">
-          Análisis comparativo mediante generación pseudoaleatoria con método congruencial mixto
+          Análisis comparativo con lógica adaptativa: mejoras solo cuando hay eventos inesperados
         </p>
       </div>
 
@@ -90,7 +106,7 @@ export function AdminSimulationDashboard() {
                   <Info className="w-4 h-4 text-gray-400 cursor-help" />
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Utiliza generador congruencial mixto: X(n+1) = (a × X(n) + c) mod m</p>
+                  <p>Lógica adaptativa: To-Be mejora solo si hay eventos en As-Is</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -103,12 +119,12 @@ export function AdminSimulationDashboard() {
               <Input
                 type="number"
                 value={numClients}
-                onChange={(e) => setNumClients(Math.max(5, Math.min(100, Number.parseInt(e.target.value) || 20)))}
-                min="5"
-                max="100"
-                placeholder="20"
+                onChange={(e) => setNumClients(Math.max(1, Math.min(10, Number.parseInt(e.target.value) || 5)))}
+                min="1"
+                max="10"
+                placeholder="5"
               />
-              <p className="text-xs text-gray-500 mt-1">Rango: 5-100 clientes</p>
+              <p className="text-xs text-gray-500 mt-1">Rango: 1-10 clientes</p>
             </div>
             <div>
               <label className="block text-sm font-medium mb-2">Semilla (Seed)</label>
@@ -151,11 +167,45 @@ export function AdminSimulationDashboard() {
       {/* Resultados de la Simulación */}
       {asIsData.length > 0 && (
         <>
-          {/* Métricas Resumen */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          {/* Indicador de Lógica Adaptativa */}
+          <Card className={`mb-6 ${hasEvents ? "border-orange-200 bg-orange-50" : "border-blue-200 bg-blue-50"}`}>
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                {hasEvents ? (
+                  <AlertTriangle className="w-5 h-5 text-orange-600 mt-0.5" />
+                ) : (
+                  <CheckCircle className="w-5 h-5 text-blue-600 mt-0.5" />
+                )}
+                <div>
+                  <h3 className={`font-semibold ${hasEvents ? "text-orange-800" : "text-blue-800"}`}>
+                    {hasEvents ? "Eventos Detectados - Mejoras Aplicadas" : "Sin Eventos - No Se Requieren Mejoras"}
+                  </h3>
+                  <p className={`text-sm mt-1 ${hasEvents ? "text-orange-700" : "text-blue-700"}`}>
+                    {hasEvents ? (
+                      <>
+                        Se detectaron <strong>{unexpectedEvents.length} eventos inesperados</strong> en el escenario
+                        actual. El escenario mejorado (To-Be) implementa segmentación de tareas para eliminar estas
+                        interrupciones.
+                      </>
+                    ) : (
+                      <>
+                        No se detectaron eventos inesperados en el escenario actual. El escenario mejorado (To-Be)
+                        mantiene los mismos valores ya que no hay problemas que resolver.
+                      </>
+                    )}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Métricas Resumen con Lógica Condicional */}
+          <div
+            className={`grid gap-6 mb-6 ${hasEvents ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-4" : "grid-cols-1 md:grid-cols-3"}`}
+          >
             <Card>
               <CardContent className="p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-3">
                   <div>
                     <p className="text-sm text-gray-600">Clientes Simulados</p>
                     <p className="text-2xl font-bold">{asIsData.length}</p>
@@ -167,84 +217,210 @@ export function AdminSimulationDashboard() {
 
             <Card>
               <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">Tiempo Promedio (As-Is)</p>
-                    <p className="text-2xl font-bold text-red-600">{asIsStats?.averageTotal.toFixed(1)}min</p>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-full">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-600">Tiempo Promedio {hasEvents ? "(As-Is)" : ""}</p>
+                        <p className="text-2xl font-bold text-red-600">{asIsStats?.averageTotal.toFixed(1)}min</p>
+                        <p className="text-xs text-red-500">{hasEvents ? "Con interrupciones" : "Sistema actual"}</p>
+                      </div>
+                      <Clock className="w-8 h-8 text-red-500" />
+                    </div>
+                    {hasEvents && (
+                      <div className="mt-3 pt-3 border-t border-red-100">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-gray-500">Tiempo por eventos:</span>
+                          <span className="text-sm font-bold text-orange-600">
+                            +{asIsStats?.eventsImpact ? (asIsStats.eventsImpact / asIsData.length).toFixed(1) : "0"}{" "}
+                            min/cliente
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between mt-1">
+                          <span className="text-xs text-gray-500">Total eventos:</span>
+                          <span className="text-sm font-medium text-orange-600">
+                            {asIsStats?.eventsImpact?.toFixed(1) || "0"} min
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <Clock className="w-8 h-8 text-red-500" />
                 </div>
               </CardContent>
             </Card>
+
+            {hasEvents && (
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-full">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-gray-600">Tiempo Promedio (To-Be)</p>
+                          <p className="text-2xl font-bold text-green-600">{toBeStats?.averageTotal.toFixed(1)}min</p>
+                          <p className="text-xs text-green-500">Sin interrupciones</p>
+                        </div>
+                        <CheckCircle className="w-8 h-8 text-green-500" />
+                      </div>
+                      <div className="mt-3 pt-3 border-t border-green-100">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-gray-500">Eventos eliminados:</span>
+                          <span className="text-sm font-bold text-green-600">{unexpectedEvents.length}</span>
+                        </div>
+                        <div className="flex items-center justify-between mt-1">
+                          <span className="text-xs text-gray-500">Mejora obtenida:</span>
+                          <span className="text-sm font-medium text-green-600">
+                            {asIsStats && toBeStats
+                              ? `${(((asIsStats.averageTotal - toBeStats.averageTotal) / asIsStats.averageTotal) * 100).toFixed(1)}%`
+                              : "0%"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             <Card>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">Tiempo Promedio (To-Be)</p>
-                    <p className="text-2xl font-bold text-green-600">{toBeStats?.averageTotal.toFixed(1)}min</p>
-                  </div>
-                  <Clock className="w-8 h-8 text-green-500" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">Mejora Obtenida</p>
-                    <p className="text-2xl font-bold text-blue-600">
-                      {asIsStats && toBeStats
-                        ? `${(((asIsStats.averageTotal - toBeStats.averageTotal) / asIsStats.averageTotal) * 100).toFixed(1)}%`
-                        : "0%"}
+                    <p className="text-sm text-gray-600">{hasEvents ? "Eventos Registrados" : "Estado del Sistema"}</p>
+                    <p className={`text-2xl font-bold ${hasEvents ? "text-red-600" : "text-green-600"}`}>
+                      {hasEvents ? unexpectedEvents.length : "Óptimo"}
+                    </p>
+                    <p className={`text-xs ${hasEvents ? "text-red-500" : "text-green-500"}`}>
+                      {hasEvents ? "Requieren atención" : "Sin problemas"}
                     </p>
                   </div>
-                  <TrendingUp className="w-8 h-8 text-blue-500" />
+                  {hasEvents ? (
+                    <AlertTriangle className="w-8 h-8 text-red-500" />
+                  ) : (
+                    <CheckCircle className="w-8 h-8 text-green-500" />
+                  )}
                 </div>
               </CardContent>
             </Card>
           </div>
 
+          {/* Segunda fila de métricas - Solo si hay eventos */}
+          {hasEvents && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-full">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-gray-600">Tiempo Espera (As-Is)</p>
+                          <p className="text-2xl font-bold text-orange-600">{asIsStats?.averageWait.toFixed(1)}min</p>
+                          <p className="text-xs text-orange-500">Con eventos</p>
+                        </div>
+                        <AlertTriangle className="w-8 h-8 text-orange-500" />
+                      </div>
+                      <div className="mt-3 pt-3 border-t border-orange-100">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-gray-500">Clientes afectados:</span>
+                          <span className="text-sm font-bold text-orange-600">{asIsStats?.clientsAffected || 0}</span>
+                        </div>
+                        <div className="flex items-center justify-between mt-1">
+                          <span className="text-xs text-gray-500">% afectados:</span>
+                          <span className="text-sm font-medium text-orange-600">
+                            {asIsData.length > 0
+                              ? (((asIsStats?.clientsAffected || 0) / asIsData.length) * 100).toFixed(1)
+                              : "0"}
+                            %
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <p className="text-sm text-gray-600">Tiempo Espera (To-Be)</p>
+                      <p className="text-2xl font-bold text-green-600">{toBeStats?.averageWait.toFixed(1)}min</p>
+                      <p className="text-xs text-green-500">Sin eventos</p>
+                    </div>
+                    <CheckCircle className="w-8 h-8 text-green-500" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Impacto Total</p>
+                      <p className="text-2xl font-bold text-purple-600">
+                        {asIsStats?.eventsImpact?.toFixed(1) || "0"} min
+                      </p>
+                      <p className="text-xs text-purple-500">Tiempo perdido</p>
+                    </div>
+                    <Clock className="w-8 h-8 text-purple-500" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
           {/* Pestañas Principales */}
           <Tabs defaultValue="comparison" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="comparison">Comparación Histogramas</TabsTrigger>
+              <TabsTrigger value="events">Eventos Inesperados</TabsTrigger>
               <TabsTrigger value="random-numbers">Números Pseudoaleatorios</TabsTrigger>
               <TabsTrigger value="detailed-data">Datos Detallados</TabsTrigger>
               <TabsTrigger value="validation">Validación Estadística</TabsTrigger>
             </TabsList>
 
             <TabsContent value="comparison" className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className={`grid gap-6 ${hasEvents ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1"}`}>
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-red-600">Escenario Actual (As-Is)</CardTitle>
-                    <p className="text-sm text-gray-600">Sistema sin optimizaciones</p>
+                    <CardTitle className="text-red-600 flex items-center gap-2">
+                      <XCircle className="w-5 h-5" />
+                      {hasEvents ? "Escenario Actual (As-Is)" : "Escenario Actual"}
+                    </CardTitle>
+                    <p className="text-sm text-gray-600">
+                      {hasEvents
+                        ? "Sistema con interrupciones y eventos inesperados"
+                        : "Sistema funcionando sin eventos inesperados"}
+                    </p>
                   </CardHeader>
                   <CardContent>
-                    <SimulationChart data={asIsData} title="As-Is" color="#ef4444" />
+                    <SimulationChart data={asIsData} title={hasEvents ? "As-Is" : "Actual"} color="#ef4444" />
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-green-600">Escenario Mejorado (To-Be)</CardTitle>
-                    <p className="text-sm text-gray-600">Sistema con segmentación de tareas</p>
-                  </CardHeader>
-                  <CardContent>
-                    <SimulationChart data={toBeData} title="To-Be" color="#22c55e" />
-                  </CardContent>
-                </Card>
+                {hasEvents && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-green-600 flex items-center gap-2">
+                        <CheckCircle className="w-5 h-5" />
+                        Escenario Mejorado (To-Be)
+                      </CardTitle>
+                      <p className="text-sm text-gray-600">Sistema sin interrupciones (eventos eliminados)</p>
+                    </CardHeader>
+                    <CardContent>
+                      <SimulationChart data={toBeData} title="To-Be" color="#22c55e" />
+                    </CardContent>
+                  </Card>
+                )}
               </div>
 
               {/* Tablas Detalladas debajo de cada gráfico */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className={`grid gap-6 ${hasEvents ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1"}`}>
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-red-600 flex items-center gap-2">
                       <BarChart3 className="w-5 h-5" />
-                      Datos As-Is - Detallados
+                      {hasEvents ? "Datos As-Is - Con Eventos Inesperados" : "Datos del Sistema Actual"}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -252,18 +428,24 @@ export function AdminSimulationDashboard() {
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-green-600 flex items-center gap-2">
-                      <BarChart3 className="w-5 h-5" />
-                      Datos To-Be - Detallados
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <DetailedSimulationTable data={toBeData} scenario="to-be" />
-                  </CardContent>
-                </Card>
+                {hasEvents && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-green-600 flex items-center gap-2">
+                        <BarChart3 className="w-5 h-5" />
+                        Datos To-Be - Sin Interrupciones
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <DetailedSimulationTable data={toBeData} scenario="to-be" />
+                    </CardContent>
+                  </Card>
+                )}
               </div>
+            </TabsContent>
+
+            <TabsContent value="events" className="space-y-6">
+              <UnexpectedEventsViewer events={unexpectedEvents} asIsData={asIsData} />
             </TabsContent>
 
             <TabsContent value="random-numbers" className="space-y-6">
@@ -280,18 +462,22 @@ export function AdminSimulationDashboard() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <Tabs defaultValue="as-is-data">
-                      <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="as-is-data">Datos As-Is</TabsTrigger>
-                        <TabsTrigger value="to-be-data">Datos To-Be</TabsTrigger>
-                      </TabsList>
-                      <TabsContent value="as-is-data">
-                        <DetailedSimulationTable data={asIsData} scenario="as-is" showAll />
-                      </TabsContent>
-                      <TabsContent value="to-be-data">
-                        <DetailedSimulationTable data={toBeData} scenario="to-be" showAll />
-                      </TabsContent>
-                    </Tabs>
+                    {hasEvents ? (
+                      <Tabs defaultValue="as-is-data">
+                        <TabsList className="grid w-full grid-cols-2">
+                          <TabsTrigger value="as-is-data">Datos As-Is (Con Eventos)</TabsTrigger>
+                          <TabsTrigger value="to-be-data">Datos To-Be (Sin Eventos)</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="as-is-data">
+                          <DetailedSimulationTable data={asIsData} scenario="as-is" showAll />
+                        </TabsContent>
+                        <TabsContent value="to-be-data">
+                          <DetailedSimulationTable data={toBeData} scenario="to-be" showAll />
+                        </TabsContent>
+                      </Tabs>
+                    ) : (
+                      <DetailedSimulationTable data={asIsData} scenario="as-is" showAll />
+                    )}
                   </CardContent>
                 </Card>
               </div>
@@ -302,7 +488,7 @@ export function AdminSimulationDashboard() {
             </TabsContent>
           </Tabs>
 
-          {/* Estadísticas Avanzadas (Colapsable) */}
+          {/* Estadísticas Comparativas con Lógica Adaptativa */}
           <Collapsible open={isStatsOpen} onOpenChange={setIsStatsOpen}>
             <CollapsibleTrigger asChild>
               <Card className="cursor-pointer hover:bg-gray-50 transition-colors">
@@ -310,7 +496,7 @@ export function AdminSimulationDashboard() {
                   <div className="flex items-center justify-between">
                     <CardTitle className="flex items-center gap-2">
                       <BarChart3 className="w-5 h-5" />
-                      Estadísticas Comparativas Detalladas
+                      Análisis Detallado con Lógica Adaptativa
                     </CardTitle>
                     <ChevronDown className={`w-5 h-5 transition-transform ${isStatsOpen ? "rotate-180" : ""}`} />
                   </div>
@@ -323,7 +509,10 @@ export function AdminSimulationDashboard() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {asIsStats && (
                       <div>
-                        <h3 className="font-semibold text-red-600 mb-3">Estadísticas As-Is</h3>
+                        <h3 className="font-semibold text-red-600 mb-3 flex items-center gap-2">
+                          <XCircle className="w-4 h-4" />
+                          Estadísticas As-Is ({hasEvents ? "Con Eventos" : "Sin Eventos"})
+                        </h3>
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
                             <span>Tiempo Total Promedio:</span>
@@ -337,13 +526,15 @@ export function AdminSimulationDashboard() {
                             <span>Tiempo de Servicio Promedio:</span>
                             <span className="font-medium">{asIsStats.averageService.toFixed(2)} min</span>
                           </div>
-                          <div className="flex justify-between">
-                            <span>Tiempo Máximo:</span>
-                            <span className="font-medium">{asIsStats.maxTotal.toFixed(2)} min</span>
+                          <div className="flex justify-between border-t pt-2">
+                            <span className="text-orange-600">Clientes Afectados por Eventos:</span>
+                            <span className="font-medium text-orange-600">{asIsStats.clientsAffected}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span>Tiempo Mínimo:</span>
-                            <span className="font-medium">{asIsStats.minTotal.toFixed(2)} min</span>
+                            <span className="text-orange-600">Tiempo Total de Impacto:</span>
+                            <span className="font-medium text-orange-600">
+                              {asIsStats.eventsImpact?.toFixed(2)} min
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span>Desviación Estándar:</span>
@@ -355,7 +546,12 @@ export function AdminSimulationDashboard() {
 
                     {toBeStats && (
                       <div>
-                        <h3 className="font-semibold text-green-600 mb-3">Estadísticas To-Be</h3>
+                        <h3
+                          className={`font-semibold mb-3 flex items-center gap-2 ${hasImprovements ? "text-green-600" : "text-blue-600"}`}
+                        >
+                          {hasImprovements ? <CheckCircle className="w-4 h-4" /> : <Equal className="w-4 h-4" />}
+                          Estadísticas To-Be ({hasImprovements ? "Mejorado" : "Sin Cambios"})
+                        </h3>
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
                             <span>Tiempo Total Promedio:</span>
@@ -369,13 +565,21 @@ export function AdminSimulationDashboard() {
                             <span>Tiempo de Servicio Promedio:</span>
                             <span className="font-medium">{toBeStats.averageService.toFixed(2)} min</span>
                           </div>
-                          <div className="flex justify-between">
-                            <span>Tiempo Máximo:</span>
-                            <span className="font-medium">{toBeStats.maxTotal.toFixed(2)} min</span>
+                          <div className="flex justify-between border-t pt-2">
+                            <span className={hasImprovements ? "text-green-600" : "text-blue-600"}>
+                              Eventos Inesperados:
+                            </span>
+                            <span className={`font-medium ${hasImprovements ? "text-green-600" : "text-blue-600"}`}>
+                              0 ({hasImprovements ? "Eliminados" : "No Detectados"})
+                            </span>
                           </div>
                           <div className="flex justify-between">
-                            <span>Tiempo Mínimo:</span>
-                            <span className="font-medium">{toBeStats.minTotal.toFixed(2)} min</span>
+                            <span className={hasImprovements ? "text-green-600" : "text-blue-600"}>
+                              Tiempo de Impacto:
+                            </span>
+                            <span className={`font-medium ${hasImprovements ? "text-green-600" : "text-blue-600"}`}>
+                              0 min
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span>Desviación Estándar:</span>
@@ -386,36 +590,89 @@ export function AdminSimulationDashboard() {
                     )}
                   </div>
 
-                  {/* Comparación de Mejoras */}
+                  {/* Análisis de Mejoras por Segmentación */}
                   {asIsStats && toBeStats && (
                     <div className="mt-6 pt-6 border-t">
-                      <h3 className="font-semibold text-blue-600 mb-3">Análisis de Mejoras</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="bg-blue-50 rounded-lg p-3">
-                          <div className="text-sm text-gray-600">Reducción Tiempo Total</div>
-                          <div className="text-lg font-bold text-blue-600">
-                            {(
-                              ((asIsStats.averageTotal - toBeStats.averageTotal) / asIsStats.averageTotal) *
-                              100
-                            ).toFixed(1)}
-                            %
+                      <h3 className="font-semibold text-blue-600 mb-3 flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4" />
+                        {hasImprovements
+                          ? "Beneficios de la Segmentación de Tareas"
+                          : "Análisis de Estabilidad del Sistema"}
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className={`rounded-lg p-3 ${hasImprovements ? "bg-blue-50" : "bg-gray-50"}`}>
+                          <div className="text-sm text-gray-600">
+                            {hasImprovements ? "Reducción Tiempo Total" : "Cambio Tiempo Total"}
+                          </div>
+                          <div className={`text-lg font-bold ${hasImprovements ? "text-blue-600" : "text-gray-600"}`}>
+                            {hasImprovements
+                              ? (
+                                  ((asIsStats.averageTotal - toBeStats.averageTotal) / asIsStats.averageTotal) *
+                                  100
+                                ).toFixed(1) + "%"
+                              : "0%"}
                           </div>
                         </div>
-                        <div className="bg-blue-50 rounded-lg p-3">
-                          <div className="text-sm text-gray-600">Reducción Tiempo Espera</div>
-                          <div className="text-lg font-bold text-blue-600">
-                            {(((asIsStats.averageWait - toBeStats.averageWait) / asIsStats.averageWait) * 100).toFixed(
-                              1,
-                            )}
-                            %
+                        <div className={`rounded-lg p-3 ${hasImprovements ? "bg-blue-50" : "bg-gray-50"}`}>
+                          <div className="text-sm text-gray-600">
+                            {hasImprovements ? "Reducción Tiempo Espera" : "Cambio Tiempo Espera"}
+                          </div>
+                          <div className={`text-lg font-bold ${hasImprovements ? "text-blue-600" : "text-gray-600"}`}>
+                            {hasImprovements
+                              ? (
+                                  ((asIsStats.averageWait - toBeStats.averageWait) / asIsStats.averageWait) *
+                                  100
+                                ).toFixed(1) + "%"
+                              : "0%"}
                           </div>
                         </div>
-                        <div className="bg-blue-50 rounded-lg p-3">
-                          <div className="text-sm text-gray-600">Ahorro Promedio</div>
-                          <div className="text-lg font-bold text-blue-600">
+                        <div className={`rounded-lg p-3 ${hasImprovements ? "bg-blue-50" : "bg-gray-50"}`}>
+                          <div className="text-sm text-gray-600">
+                            {hasImprovements ? "Ahorro Promedio" : "Diferencia Promedio"}
+                          </div>
+                          <div className={`text-lg font-bold ${hasImprovements ? "text-blue-600" : "text-gray-600"}`}>
                             {(asIsStats.averageTotal - toBeStats.averageTotal).toFixed(1)} min
                           </div>
                         </div>
+                        <div className={`rounded-lg p-3 ${hasEvents ? "bg-blue-50" : "bg-gray-50"}`}>
+                          <div className="text-sm text-gray-600">
+                            {hasEvents ? "Eventos Eliminados" : "Eventos Detectados"}
+                          </div>
+                          <div className={`text-lg font-bold ${hasEvents ? "text-blue-600" : "text-gray-600"}`}>
+                            {unexpectedEvents.length}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className={`mt-4 p-4 rounded-lg ${hasImprovements ? "bg-green-50" : "bg-blue-50"}`}>
+                        <h4 className={`font-medium mb-2 ${hasImprovements ? "text-green-800" : "text-blue-800"}`}>
+                          🎯 Conclusión del Análisis
+                        </h4>
+                        <p className={`text-sm ${hasImprovements ? "text-green-700" : "text-blue-700"}`}>
+                          {hasImprovements ? (
+                            <>
+                              La implementación de segmentación de tareas en la cafetería "Martha de Bianchetti" elimina
+                              completamente las interrupciones que afectan al cajero, resultando en una mejora promedio
+                              de <strong>{(asIsStats.averageTotal - toBeStats.averageTotal).toFixed(1)} minutos</strong>{" "}
+                              por cliente y una reducción del{" "}
+                              <strong>
+                                {(
+                                  ((asIsStats.averageTotal - toBeStats.averageTotal) / asIsStats.averageTotal) *
+                                  100
+                                ).toFixed(1)}
+                                %
+                              </strong>
+                              en los tiempos de espera.
+                            </>
+                          ) : (
+                            <>
+                              El sistema actual de la cafetería "Martha de Bianchetti" ya funciona de manera óptima sin
+                              eventos inesperados que requieran intervención. Los tiempos de servicio se mantienen
+                              estables en <strong>{asIsStats.averageTotal.toFixed(1)} minutos</strong> promedio por
+                              cliente, indicando que no se requieren mejoras adicionales en este momento.
+                            </>
+                          )}
+                        </p>
                       </div>
                     </div>
                   )}

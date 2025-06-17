@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Calculator, Download, Search } from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { BarChart3, Download, Filter, Search } from "lucide-react"
 import { useState } from "react"
 import type { RandomNumberData } from "../hooks/useAdvancedSimulation"
 
@@ -17,215 +18,291 @@ interface RandomNumbersViewerProps {
 
 export function RandomNumbersViewer({ randomNumbers, seed, onExport }: RandomNumbersViewerProps) {
   const [searchTerm, setSearchTerm] = useState("")
-  const [filterUsage, setFilterUsage] = useState<"all" | "arrival" | "service">("all")
+  const [filterUsage, setFilterUsage] = useState<"all" | "arrival" | "service" | "event">("all")
 
   if (randomNumbers.length === 0) {
     return (
       <Card>
-        <CardContent className="p-8 text-center text-gray-500">
-          <Calculator className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p>Ejecuta una simulación para ver los números pseudoaleatorios generados</p>
+        <CardContent className="p-8 text-center">
+          <div className="text-gray-500">
+            <BarChart3 className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <p className="text-lg font-medium">No hay números pseudoaleatorios generados</p>
+            <p className="text-sm">Ejecuta una simulación para ver los datos</p>
+          </div>
         </CardContent>
       </Card>
     )
   }
 
   const filteredNumbers = randomNumbers.filter((num) => {
-    const matchesSearch =
-      searchTerm === "" ||
-      num.index.toString().includes(searchTerm) ||
-      num.value.toString().includes(searchTerm) ||
-      num.normalized.toString().includes(searchTerm)
-
-    const matchesUsage = filterUsage === "all" || num.usage === filterUsage
-
-    return matchesSearch && matchesUsage
+    const matchesSearch = searchTerm === "" || num.index.toString().includes(searchTerm)
+    const matchesFilter = filterUsage === "all" || num.usage === filterUsage
+    return matchesSearch && matchesFilter
   })
 
-  const exportRandomNumbers = (format: "csv" | "json") => {
-    const exportData = {
-      metadata: {
-        seed,
-        count: randomNumbers.length,
-        method: "Linear Congruential Generator",
-        parameters: {
-          a: 1664525,
-          c: 1013904223,
-          m: Math.pow(2, 32),
-        },
-      },
-      numbers: randomNumbers,
+  const arrivalNumbers = randomNumbers.filter((n) => n.usage === "arrival")
+  const serviceNumbers = randomNumbers.filter((n) => n.usage === "service")
+  const eventNumbers = randomNumbers.filter((n) => n.usage === "event")
+
+  const getUsageColor = (usage: string) => {
+    switch (usage) {
+      case "arrival":
+        return "bg-blue-100 text-blue-700"
+      case "service":
+        return "bg-green-100 text-green-700"
+      case "event":
+        return "bg-orange-100 text-orange-700"
+      default:
+        return "bg-gray-100 text-gray-700"
     }
+  }
 
-    if (format === "json") {
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = `random-numbers-${seed}-${Date.now()}.json`
-      a.click()
-      URL.revokeObjectURL(url)
-    } else {
-      const csvData = [
-        ["Index", "Raw Value", "Normalized", "Usage"],
-        ...randomNumbers.map((num) => [num.index, num.value, num.normalized.toFixed(6), num.usage]),
-      ]
-
-      const csvContent = csvData.map((row) => row.join(",")).join("\n")
-      const blob = new Blob([csvContent], { type: "text/csv" })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = `random-numbers-${seed}-${Date.now()}.csv`
-      a.click()
-      URL.revokeObjectURL(url)
+  const getUsageLabel = (usage: string) => {
+    switch (usage) {
+      case "arrival":
+        return "Llegadas"
+      case "service":
+        return "Servicio"
+      case "event":
+        return "Eventos"
+      default:
+        return "Desconocido"
     }
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
+    <div className="space-y-6">
+      {/* Información del Generador */}
+      <Card>
+        <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Calculator className="w-5 h-5" />
-            Números Pseudoaleatorios Generados
-            <Badge variant="outline">{randomNumbers.length} números</Badge>
+            <BarChart3 className="w-5 h-5" />
+            Generador Congruencial Mixto
           </CardTitle>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => exportRandomNumbers("csv")}>
-              <Download className="w-4 h-4 mr-2" />
-              CSV
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => exportRandomNumbers("json")}>
-              <Download className="w-4 h-4 mr-2" />
-              JSON
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Información del Generador */}
-        <div className="bg-blue-50 rounded-lg p-4">
-          <h3 className="font-semibold text-blue-800 mb-2">Parámetros del Generador Congruencial Mixto</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div>
-              <span className="text-gray-600">Semilla (X₀):</span>
-              <div className="font-mono font-bold">{seed}</div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-blue-50 rounded p-3">
+              <div className="text-sm text-gray-600">Semilla Inicial</div>
+              <div className="text-lg font-bold text-blue-600">{seed.toLocaleString()}</div>
             </div>
-            <div>
-              <span className="text-gray-600">Multiplicador (a):</span>
-              <div className="font-mono font-bold">1,664,525</div>
+            <div className="bg-green-50 rounded p-3">
+              <div className="text-sm text-gray-600">Números Generados</div>
+              <div className="text-lg font-bold text-green-600">{randomNumbers.length}</div>
             </div>
-            <div>
-              <span className="text-gray-600">Incremento (c):</span>
-              <div className="font-mono font-bold">1,013,904,223</div>
+            <div className="bg-orange-50 rounded p-3">
+              <div className="text-sm text-gray-600">Para Eventos</div>
+              <div className="text-lg font-bold text-orange-600">{eventNumbers.length}</div>
             </div>
-            <div>
-              <span className="text-gray-600">Módulo (m):</span>
-              <div className="font-mono font-bold">2³²</div>
+            <div className="bg-purple-50 rounded p-3">
+              <div className="text-sm text-gray-600">Rango Normalizado</div>
+              <div className="text-lg font-bold text-purple-600">[0, 1)</div>
             </div>
           </div>
-          <div className="mt-2 text-xs text-blue-600">Fórmula: X(n+1) = (a × X(n) + c) mod m</div>
-        </div>
+        </CardContent>
+      </Card>
 
-        {/* Filtros */}
-        <div className="flex gap-4 items-center">
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input
-                placeholder="Buscar por índice o valor..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+      {/* Controles y Filtros */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Números Pseudoaleatorios Generados</CardTitle>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => onExport("csv")}>
+                <Download className="w-4 h-4 mr-2" />
+                CSV
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => onExport("json")}>
+                <Download className="w-4 h-4 mr-2" />
+                JSON
+              </Button>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button
-              variant={filterUsage === "all" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFilterUsage("all")}
-            >
-              Todos
-            </Button>
-            <Button
-              variant={filterUsage === "arrival" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFilterUsage("arrival")}
-            >
-              Llegadas
-            </Button>
-            <Button
-              variant={filterUsage === "service" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFilterUsage("service")}
-            >
-              Servicios
-            </Button>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col md:flex-row gap-4 mb-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <Input
+                  placeholder="Buscar por índice..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant={filterUsage === "all" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFilterUsage("all")}
+              >
+                <Filter className="w-4 h-4 mr-2" />
+                Todos ({randomNumbers.length})
+              </Button>
+              <Button
+                variant={filterUsage === "arrival" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFilterUsage("arrival")}
+              >
+                Llegadas ({arrivalNumbers.length})
+              </Button>
+              <Button
+                variant={filterUsage === "service" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFilterUsage("service")}
+              >
+                Servicio ({serviceNumbers.length})
+              </Button>
+              <Button
+                variant={filterUsage === "event" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFilterUsage("event")}
+              >
+                Eventos ({eventNumbers.length})
+              </Button>
+            </div>
           </div>
-        </div>
 
-        {/* Tabla de Números */}
-        <div className="max-h-96 overflow-y-auto border rounded-lg">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-16">Índice</TableHead>
-                <TableHead>Valor Crudo</TableHead>
-                <TableHead>Normalizado [0,1]</TableHead>
-                <TableHead>Uso</TableHead>
-                <TableHead>Hexadecimal</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredNumbers.map((num) => (
-                <TableRow key={num.index}>
-                  <TableCell className="font-medium">#{num.index}</TableCell>
-                  <TableCell className="font-mono text-sm">{num.value.toLocaleString()}</TableCell>
-                  <TableCell className="font-mono text-sm">{num.normalized.toFixed(6)}</TableCell>
-                  <TableCell>
-                    <Badge
-                      className={num.usage === "arrival" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"}
-                    >
-                      {num.usage === "arrival" ? "Llegada" : "Servicio"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="font-mono text-xs text-gray-500">
-                    0x{num.value.toString(16).toUpperCase().padStart(8, "0")}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+          <Tabs defaultValue="table" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="table">Vista de Tabla</TabsTrigger>
+              <TabsTrigger value="distribution">Distribución por Uso</TabsTrigger>
+            </TabsList>
 
-        {/* Estadísticas de los números */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-gray-50 rounded p-3">
-            <div className="text-xs text-gray-600">Total Generados</div>
-            <div className="text-lg font-bold">{randomNumbers.length}</div>
-          </div>
-          <div className="bg-gray-50 rounded p-3">
-            <div className="text-xs text-gray-600">Para Llegadas</div>
-            <div className="text-lg font-bold text-blue-600">
-              {randomNumbers.filter((n) => n.usage === "arrival").length}
-            </div>
-          </div>
-          <div className="bg-gray-50 rounded p-3">
-            <div className="text-xs text-gray-600">Para Servicios</div>
-            <div className="text-lg font-bold text-green-600">
-              {randomNumbers.filter((n) => n.usage === "service").length}
-            </div>
-          </div>
-          <div className="bg-gray-50 rounded p-3">
-            <div className="text-xs text-gray-600">Promedio Normalizado</div>
-            <div className="text-lg font-bold text-gray-700">
-              {(randomNumbers.reduce((sum, n) => sum + n.normalized, 0) / randomNumbers.length).toFixed(3)}
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+            <TabsContent value="table">
+              <div className="max-h-96 overflow-y-auto border rounded-lg">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Índice</TableHead>
+                      <TableHead>Valor Generado</TableHead>
+                      <TableHead>Valor Normalizado</TableHead>
+                      <TableHead>Uso</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredNumbers.slice(0, 50).map((num) => (
+                      <TableRow key={num.index}>
+                        <TableCell className="font-medium">#{num.index}</TableCell>
+                        <TableCell className="font-mono text-sm">{num.value.toLocaleString()}</TableCell>
+                        <TableCell className="font-mono text-sm">{num.normalized.toFixed(6)}</TableCell>
+                        <TableCell>
+                          <Badge className={getUsageColor(num.usage)}>{getUsageLabel(num.usage)}</Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              {filteredNumbers.length > 50 && (
+                <p className="text-sm text-gray-500 mt-2 text-center">
+                  Mostrando primeros 50 de {filteredNumbers.length} números filtrados
+                </p>
+              )}
+            </TabsContent>
+
+            <TabsContent value="distribution">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-blue-600 text-lg">Números para Llegadas</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span>Cantidad:</span>
+                        <span className="font-bold">{arrivalNumbers.length}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Promedio:</span>
+                        <span className="font-bold">
+                          {arrivalNumbers.length > 0
+                            ? (
+                                arrivalNumbers.reduce((sum, n) => sum + n.normalized, 0) / arrivalNumbers.length
+                              ).toFixed(4)
+                            : "0"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Rango:</span>
+                        <span className="font-bold">
+                          {arrivalNumbers.length > 0
+                            ? `${Math.min(...arrivalNumbers.map((n) => n.normalized)).toFixed(3)} - ${Math.max(...arrivalNumbers.map((n) => n.normalized)).toFixed(3)}`
+                            : "N/A"}
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-green-600 text-lg">Números para Servicio</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span>Cantidad:</span>
+                        <span className="font-bold">{serviceNumbers.length}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Promedio:</span>
+                        <span className="font-bold">
+                          {serviceNumbers.length > 0
+                            ? (
+                                serviceNumbers.reduce((sum, n) => sum + n.normalized, 0) / serviceNumbers.length
+                              ).toFixed(4)
+                            : "0"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Rango:</span>
+                        <span className="font-bold">
+                          {serviceNumbers.length > 0
+                            ? `${Math.min(...serviceNumbers.map((n) => n.normalized)).toFixed(3)} - ${Math.max(...serviceNumbers.map((n) => n.normalized)).toFixed(3)}`
+                            : "N/A"}
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-orange-600 text-lg">Números para Eventos</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span>Cantidad:</span>
+                        <span className="font-bold">{eventNumbers.length}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Promedio:</span>
+                        <span className="font-bold">
+                          {eventNumbers.length > 0
+                            ? (eventNumbers.reduce((sum, n) => sum + n.normalized, 0) / eventNumbers.length).toFixed(4)
+                            : "0"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Rango:</span>
+                        <span className="font-bold">
+                          {eventNumbers.length > 0
+                            ? `${Math.min(...eventNumbers.map((n) => n.normalized)).toFixed(3)} - ${Math.max(...eventNumbers.map((n) => n.normalized)).toFixed(3)}`
+                            : "N/A"}
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+    </div>
   )
 }
